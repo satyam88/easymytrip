@@ -1,6 +1,6 @@
 pipeline {
 
-    agent any
+    agent { label 'javaJenkinsSlave_TeamA' }
 
     options {
         buildDiscarder(logRotator(numToKeepStr: '5', artifactNumToKeepStr: '5'))
