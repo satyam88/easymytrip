@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "satyam88/easymytrip:dev-easymytrip-v.1.${env.BUILD_NUMBER}"
+        ECR_IMAGE_NAME = "533267238276.dkr.ecr.ap-south-1.amazonaws.com/easymytrip:dev-easymytrip-v.1.${env.BUILD_NUMBER}"
+    }
+
     options {
         buildDiscarder(logRotator(numToKeepStr: '5', artifactNumToKeepStr: '5'))
     }
@@ -19,74 +24,61 @@ pipeline {
         }
         stage('Code QA Execution') {
             steps {
-                echo 'Junit Test case check in Progress!'
+                echo 'JUnit Test Case Check in Progress!'
                 sh 'mvn clean test'
-                echo 'Junit Test case check Completed!'
+                echo 'JUnit Test Case Check Completed!'
             }
         }
         stage('Code Package') {
             steps {
-                echo 'Creating War Artifact'
+                echo 'Creating WAR Artifact'
                 sh 'mvn clean package'
-                echo 'Creating War Artifact Completed'
+                echo 'WAR Artifact Creation Completed'
             }
         }
         stage('Building & Tag Docker Image') {
             steps {
-                script {
-                    def imageName = "satyam88/easymytrip:dev-easymytrip-v.1.${env.BUILD_NUMBER}"
-                    echo "Starting Building Docker Image: ${imageName}"
-                    sh "docker build -t ${imageName} ."
-                    echo 'Completed Building Docker Image'
-                }
+                echo "Starting Building Docker Image: ${env.IMAGE_NAME}"
+                sh "docker build -t ${env.IMAGE_NAME} ."
+                echo 'Docker Image Build Completed'
             }
         }
         stage('Docker Image Scanning') {
             steps {
                 echo 'Docker Image Scanning Started'
+                // Add actual scanning steps here
                 echo 'Docker Image Scanning Completed'
             }
         }
-        stage('Docker push to Docker Hub') {
+        stage('Docker Push to Docker Hub') {
             steps {
-                script {
-                    def imageName = "satyam88/easymytrip:dev-easymytrip-v.1.${env.BUILD_NUMBER}"
-                    withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB_CRED', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        echo "Push Docker Image to DockerHub: In Progress"
-                        sh "docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}"
-                        sh "docker push ${imageName}"
-                        echo "Push Docker Image to DockerHub: Completed"
-                    }
+                withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB_CRED', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    echo "Pushing Docker Image to DockerHub: ${env.IMAGE_NAME}"
+                    sh "docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}"
+                    sh "docker push ${env.IMAGE_NAME}"
+                    echo "Docker Image Push to DockerHub Completed"
                 }
             }
         }
         stage('Docker Image Push to Amazon ECR') {
             steps {
-                script {
-                    def imageName = "satyam88/easymytrip:dev-easymytrip-v.1.${env.BUILD_NUMBER}"
-                    def ecrImageName = "533267238276.dkr.ecr.ap-south-1.amazonaws.com/easymytrip:dev-easymytrip-v.1.${env.BUILD_NUMBER}"
-                    echo "Tagging the Docker Image: In Progress"
-                    sh "docker tag ${imageName} ${ecrImageName}"
-                    echo "Tagging the Docker Image: Completed"
+                echo "Tagging Docker Image for ECR: ${env.ECR_IMAGE_NAME}"
+                sh "docker tag ${env.IMAGE_NAME} ${env.ECR_IMAGE_NAME}"
+                echo "Docker Image Tagging Completed"
 
-                    echo "Push Docker Image to ECR: In Progress"
-                    withCredentials([usernamePassword(credentialsId: 'ecr:ap-south-1:ecr-credentials', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                        sh "aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 533267238276.dkr.ecr.ap-south-1.amazonaws.com"
-                        sh "docker push ${ecrImageName}"
-                    }
-                    echo "Push Docker Image to ECR: Completed"
+                withAWS(credentials: 'aws-ecr-credentials', region: 'ap-south-1') {
+                    echo "Pushing Docker Image to ECR: ${env.ECR_IMAGE_NAME}"
+                    sh "aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 533267238276.dkr.ecr.ap-south-1.amazonaws.com"
+                    sh "docker push ${env.ECR_IMAGE_NAME}"
+                    echo "Docker Image Push to ECR Completed"
                 }
             }
         }
-        stage ('delete the docker images') {
+        stage('Delete Local Docker Images') {
             steps {
-                script {
-                    def imageName = "satyam88/easymytrip:dev-easymytrip-v.1.${env.BUILD_NUMBER}"
-                    def ecrImageName = "533267238276.dkr.ecr.ap-south-1.amazonaws.com/easymytrip:dev-easymytrip-v.1.${env.BUILD_NUMBER}"
-                    echo "Deleting local Docker images: In Progress"
-                    sh "docker rmi ${imageName} ${ecrImageName}"
-                    echo "Deleting local Docker images: Completed"
-                }
+                echo "Deleting Local Docker Images: ${env.IMAGE_NAME} and ${env.ECR_IMAGE_NAME}"
+                sh "docker rmi ${env.IMAGE_NAME} ${env.ECR_IMAGE_NAME}"
+                echo "Local Docker Images Deletion Completed"
             }
         }
     }
