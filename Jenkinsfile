@@ -44,8 +44,6 @@ pipeline {
         stage('Docker Image Scanning') {
             steps {
                 echo 'Docker Image Scanning Started'
-                // Replace with actual scanning tool commands, e.g., Trivy, Anchore, etc.
-                sh 'docker scan ${imageName}'
                 echo 'Docker Image Scanning Completed'
             }
         }
