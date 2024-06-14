@@ -66,7 +66,7 @@ pipeline {
                 sh "docker tag ${env.IMAGE_NAME} ${env.ECR_IMAGE_NAME}"
                 echo "Docker Image Tagging Completed"
 
-                withCredentials([usernamePassword(credentialsId: 'aws-ecr-credentials', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                withCredentials([usernamePassword(credentialsId: 'ecr-credentials', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
                     echo "Logging in to Amazon ECR"
                     sh "aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 533267238276.dkr.ecr.ap-south-1.amazonaws.com"
                     echo "Pushing Docker Image to ECR: ${env.ECR_IMAGE_NAME}"
