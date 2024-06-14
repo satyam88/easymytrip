@@ -50,6 +50,7 @@ pipeline {
         stage('Docker push to Docker Hub') {
             steps {
                 script {
+                    def imageName = "satyam88/easymytrip:dev-easymytrip-v.1.${env.BUILD_NUMBER}"
                     withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB_CRED', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                         echo "Push Docker Image to DockerHub: In Progress"
                         sh "docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}"
