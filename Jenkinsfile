@@ -73,6 +73,19 @@ pipeline {
                 }
             }
         }
+        stage('Upload the Docker Image to Nexus') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'nexus-credentials', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                        sh 'docker login http://13.233.149.23:8085/repository/easymytrip-ms/ -u admin -p ${PASSWORD}'
+                        echo "Push Docker Image to Nexus: In Progress"
+                        sh "docker tag ${env.IMAGE_NAME} 13.233.149.23:8085/easymytrip-ms:${env.ECR_IMAGE_NAME}"
+                        sh 'docker push 13.233.149.23:8085/easymytrip-ms:${env.ECR_IMAGE_NAME}'
+                        echo "Push Docker Image to Nexus: Completed"
+                    }
+                }
+            }
+        }
         stage('Delete Local Docker Images') {
             steps {
                 echo "Deleting Local Docker Images: ${env.IMAGE_NAME} and ${env.ECR_IMAGE_NAME}"
