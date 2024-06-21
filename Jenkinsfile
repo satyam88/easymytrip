@@ -4,7 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = "satyam88/easymytrip:dev-easymytrip-v.1.${env.BUILD_NUMBER}"
         ECR_IMAGE_NAME = "533267238276.dkr.ecr.ap-south-1.amazonaws.com/easymytrip:dev-easymytrip-v.1.${env.BUILD_NUMBER}"
-        NEXUS_IMAGE_NAME = "13.233.149.23:8085/easymytrip-ms:dev-easymytrip-v.1.${env.BUILD_NUMBER}"
+        NEXUS_IMAGE_NAME = "3.110.216.145:8085/easymytrip-ms:dev-easymytrip-v.1.${env.BUILD_NUMBER}"
     }
 
     options {
