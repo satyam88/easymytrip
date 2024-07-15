@@ -4,7 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = "satyam88/easymytrip:dev-easymytrip-v.1.${env.BUILD_NUMBER}"
         ECR_IMAGE_NAME = "533267238276.dkr.ecr.ap-south-1.amazonaws.com/easymytrip:dev-easymytrip-v.1.${env.BUILD_NUMBER}"
-        NEXUS_IMAGE_NAME = "3.110.216.145:8085/easymytrip-ms:dev-easymytrip-v.1.${env.BUILD_NUMBER}"
+        // NEXUS_IMAGE_NAME = "3.110.216.145:8085/easymytrip-ms:dev-easymytrip-v.1.${env.BUILD_NUMBER}"
     }
 
     options {
@@ -13,6 +13,7 @@ pipeline {
 
     tools {
         maven 'maven_3.9.4'
+        // sonarqubeScanner 'sonarqube-scanner'
     }
 
     stages {
@@ -23,6 +24,7 @@ pipeline {
                 echo 'Code Compilation is Completed Successfully!'
             }
         }
+        /*
         stage('Sonarqube Code Quality') {
             environment {
                 scannerHome = tool 'sonarqube-scanner'
@@ -37,6 +39,7 @@ pipeline {
                 }
             }
         }
+        */
         stage('Code QA Execution') {
             steps {
                 echo 'JUnit Test Case Check in Progress!'
@@ -58,6 +61,7 @@ pipeline {
                 echo 'Docker Image Build Completed'
             }
         }
+        /*
         stage('Docker Image Scanning') {
             steps {
                 echo 'Docker Image Scanning Started'
@@ -65,6 +69,7 @@ pipeline {
                 echo 'Docker Image Scanning Completed'
             }
         }
+        */
         stage('Docker Push to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB_CRED', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
@@ -88,6 +93,7 @@ pipeline {
                 }
             }
         }
+        /*
         stage('Upload the Docker Image to Nexus') {
             steps {
                 script {
@@ -101,6 +107,7 @@ pipeline {
                 }
             }
         }
+        */
         stage('Delete Local Docker Images') {
             steps {
                 echo "Deleting Local Docker Images: ${env.IMAGE_NAME} ${env.ECR_IMAGE_NAME} ${env.NEXUS_IMAGE_NAME}"
