@@ -43,6 +43,7 @@ pipeline {
         stage('Code QA Execution') {
             steps {
                 echo 'JUnit Test Case Check in Progress!'
+                sh 'mvn clean test'
                 echo 'JUnit Test Case Check Completed!'
             }
         }
