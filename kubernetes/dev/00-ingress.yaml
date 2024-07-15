@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dev-easymytrip-ingress
+  namespace: dev
+  labels:
+    env: dev
+    app: easymytrip
+    layer: frontend
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - host: easymytrip.connectingclouds.in
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: dev-easymytrip-service
+                port:
+                  number: 8080

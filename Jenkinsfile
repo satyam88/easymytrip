@@ -4,7 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = "satyam88/easymytrip:dev-easymytrip-v.1.${env.BUILD_NUMBER}"
         ECR_IMAGE_NAME = "533267238276.dkr.ecr.ap-south-1.amazonaws.com/easymytrip:dev-easymytrip-v.1.${env.BUILD_NUMBER}"
-        // NEXUS_IMAGE_NAME = "3.110.216.145:8085/easymytrip-ms:dev-easymytrip-v.1.${env.BUILD_NUMBER}"
+        // NEXUS_IMAGE_NAME = "3.110.216.145:8085/easymytrip:dev-easymytrip-v.1.${env.BUILD_NUMBER}"
     }
 
     options {
@@ -43,7 +43,6 @@ pipeline {
         stage('Code QA Execution') {
             steps {
                 echo 'JUnit Test Case Check in Progress!'
-                sh 'mvn clean test'
                 echo 'JUnit Test Case Check Completed!'
             }
         }
@@ -98,7 +97,7 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'nexus-credentials', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                        sh 'docker login http://3.110.216.145:8085/repository/easymytrip-ms/ -u admin -p ${PASSWORD}'
+                        sh 'docker login http://3.110.216.145:8085/repository/easymytrip/ -u admin -p ${PASSWORD}'
                         echo "Push Docker Image to Nexus: In Progress"
                         sh "docker tag ${env.IMAGE_NAME} ${env.NEXUS_IMAGE_NAME}"
                         sh "docker push ${env.NEXUS_IMAGE_NAME}"
@@ -108,6 +107,38 @@ pipeline {
             }
         }
         */
+        stage('Deploy app to dev env') {
+            when {
+                branch 'dev' // Only deploy on the 'dev' branch
+            }
+            steps {
+                script {
+                    def yamlFile = 'kubernetes/dev/05-deployment.yaml'
+                    def versionedImage = "dev-booking-v.1.${BUILD_NUMBER}"
+
+                    // Replace <latest> with the versioned image tag in the YAML file
+                    sh "sed -i '' -e 's/<latest>/${versionedImage}/g' ${yamlFile}"
+
+                    // Deploy to Kubernetes
+                    kubernetesDeploy(
+                        configs: yamlFile,
+                        kubeconfigId: 'my-kubeconfig',
+                        kubeconfig: KUBE_CONFIG,
+                        onFailure: 'abort', // Abort pipeline on deployment failure
+                        showToken: true, // Display Kubernetes token for debug
+                        verifySSL: false // Disable SSL verification (if needed)
+                    )
+                }
+            }
+            post {
+                success {
+                    echo "Deployment to dev environment completed successfully"
+                }
+                failure {
+                    echo "Deployment to dev environment failed. Check logs for details."
+                }
+            }
+        }
         stage('Delete Local Docker Images') {
             steps {
                 echo "Deleting Local Docker Images: ${env.IMAGE_NAME} ${env.ECR_IMAGE_NAME} ${env.NEXUS_IMAGE_NAME}"

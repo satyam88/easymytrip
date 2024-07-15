@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dev-easymytrip-application-config
+  namespace: dev
+  labels:
+    env: dev
+    app: easymytrip
+    layer: frontend
+data:
+  application.properties: |-
