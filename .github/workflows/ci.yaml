@@ -1,1 +1,87 @@
+name: CI Pipeline
 
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+env:
+  APP_NAME: easymytrip
+  VERSION: 1.1.${{ github.run_number }}
+
+  IMAGE_LOCAL: easymytrip:latest
+  IMAGE_DOCKERHUB: satyam88/easymytrip:latest
+  IMAGE_ECR: 445842764710.dkr.ecr.ap-south-1.amazonaws.com/easymytrip:latest
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build & Test
+        run: mvn clean verify
+
+      - name: Package Artifact
+        run: |
+          mvn package -DskipTests
+          cp target/*.jar target/${APP_NAME}-${VERSION}.jar
+
+      - name: Build Docker Image
+        run: |
+          docker build -t $IMAGE_LOCAL .
+          docker tag $IMAGE_LOCAL $IMAGE_DOCKERHUB
+          docker tag $IMAGE_LOCAL $IMAGE_ECR
+
+      - name: Scan Docker Image with Trivy
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: ${{ env.IMAGE_LOCAL }}
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Push to Docker Hub
+        run: docker push $IMAGE_DOCKERHUB
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
+          | docker login --username AWS --password-stdin 445842764710.dkr.ecr.ap-south-1.amazonaws.com
+
+      - name: Push to Amazon ECR
+        run: docker push $IMAGE_ECR
+
+      - name: Cleanup Docker Images
+        if: always()
+        run: |
+          docker rmi $IMAGE_LOCAL || true
+          docker rmi $IMAGE_DOCKERHUB || true
+          docker rmi $IMAGE_ECR || true
+          docker image prune -f || true
