@@ -41,15 +41,16 @@ jobs:
         run: mvn clean verify
 
       - name: Package Artifact
-        run: |
-          mvn package -DskipTests
-          cp target/*.jar target/${APP_NAME}-${VERSION}.jar
+        run: mvn package -DskipTests
+
+      - name: List target directory (debug)
+        run: ls -l target
 
       - name: Upload JAR Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-jar
-          path: target/${APP_NAME}-${VERSION}.jar
+          path: target/*.jar
 
 
   docker-build-scan:
@@ -66,6 +67,9 @@ jobs:
         with:
           name: app-jar
           path: target/
+
+      - name: Verify downloaded artifact
+        run: ls -l target
 
       - name: Build Docker Image
         run: |
@@ -90,7 +94,8 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Build Docker Image (again for this runner)
+      # Rebuild image on this runner (each job has a fresh VM)
+      - name: Build Docker Image
         run: |
           docker build -t $IMAGE_LOCAL .
           docker tag $IMAGE_LOCAL $IMAGE_DOCKERHUB
