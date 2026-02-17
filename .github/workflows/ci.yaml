@@ -24,7 +24,7 @@ env:
 jobs:
 
   build-test:
-    name: Compile, Test & Package
+    name: Compile,Test & Package
     runs-on: self-hosted
 
     steps:
@@ -36,6 +36,31 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21'
+
+      - name: Install Maven 3.9.12 if not present
+        shell: bash
+        run: |
+          set -e
+
+          MAVEN_VERSION=3.9.12
+          MAVEN_DIR=/opt/maven/apache-maven-$MAVEN_VERSION
+          MAVEN_BIN=$MAVEN_DIR/bin/mvn
+
+          if [ -x "$MAVEN_BIN" ]; then
+            echo "✅ Maven $MAVEN_VERSION already installed"
+          else
+            echo "⬇️ Installing Maven $MAVEN_VERSION..."
+            sudo dnf install -y wget tar
+
+            sudo mkdir -p /opt/maven
+            cd /tmp
+            wget https://archive.apache.org/dist/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz
+            sudo tar -xzf apache-maven-$MAVEN_VERSION-bin.tar.gz -C /opt/maven
+
+            sudo ln -sf $MAVEN_BIN /usr/local/bin/mvn
+          fi
+
+          mvn -version
 
       - name: Cache Maven packages
         uses: actions/cache@v4
